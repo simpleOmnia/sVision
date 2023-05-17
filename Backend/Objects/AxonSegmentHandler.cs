@@ -14,9 +14,11 @@ namespace svision_internal
         {
             
             string directory = Path.GetDirectoryName(path); 
+            Debug.Log(directory);
             if(!Directory.Exists(directory))
             {
-                Debug.LogError("sVision - ReadAxonSegment path does not have a valid directory");
+                Debug.LogError("sVision - ReadAxonSegment path does not have a valid directory\n"+path);
+                
                 return new AxonSegment[0]; 
             }
             

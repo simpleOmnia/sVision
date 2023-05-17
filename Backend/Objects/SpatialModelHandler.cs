@@ -36,7 +36,7 @@ namespace svision_internal{
                 yMin, yMax, xRes, yRes, rho, lambda, axon_threshold, number_axons, number_axon_segments, useLeftEye);
         }
 
-        public ComputeBuffer GetElectrodeToAxonSegmentGauss(string axonContribDataFilePath) {
+        public float[] GetElectrodeToAxonSegmentGauss(string axonContribDataFilePath) {
             int numberElectrodes = electrodes.Length;
             AxonSegment[] segmentsContrib = AxonSegmentHandler.ReadAxonSegments(axonContribDataFilePath);
             int rho = 0;
@@ -49,23 +49,23 @@ namespace svision_internal{
             long numberElectrodesToSegments =
                 (long) segmentsContrib.Length * (long) numberElectrodes;
 
-            ComputeBuffer axonSegmentGaussToElectrodes = new ComputeBuffer((int) numberElectrodesToSegments,
-                System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
-            ;
+            ComputeBuffer axonSegmentGaussToElectrodes = new ComputeBuffer(1, 4); 
 
             ComputeShader computeShader = Resources.Load<ComputeShader>(
                 "Shaders" + Path.DirectorySeparatorChar + "ComputeShaders" +
-                Path.DirectorySeparatorChar + "AxonElectrodeGauss");
+                Path.DirectorySeparatorChar + "ElectrodeContribution");
 
-            sxr.DebugLog(segmentsContrib.Length + "*" + numberElectrodes);
+            Debug.Log(segmentsContrib.Length + "*" + numberElectrodes);
             int kernel = computeShader.FindKernel("calculateGauss");
 
             if (numberElectrodesToSegments == 0 || numberElectrodesToSegments * 4 > 2147483648) {
                 Debug.LogError(
                     "sVision - Calculating axon segment electrode interactions not computationally feasible." +
                     "  Please raise downscaling factor or lower number of electrodes");
+                return new float[0]; 
             }
             else {
+                axonSegmentGaussToElectrodes = new ComputeBuffer((int) numberElectrodesToSegments, 4);
                 ComputeBuffer electrodesBuffer =
                     new ComputeBuffer(electrodes.Length,
                         System.Runtime.InteropServices.Marshal.SizeOf(typeof(Electrode)), ComputeBufferType.Default);
@@ -93,7 +93,9 @@ namespace svision_internal{
 
             }
 
-            return axonSegmentGaussToElectrodes;
+            float[] returnArray = new float[segmentsContrib.Length * numberElectrodes]; 
+            axonSegmentGaussToElectrodes.GetData(returnArray);
+            return returnArray;
         }
     }
 }

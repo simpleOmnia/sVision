@@ -115,8 +115,10 @@ namespace svision_internal
         {
             if(!saveName.Contains("_rho")) Debug.LogWarning("sVision - AxonMapModel saveName must contain _rho(#rho_value) for computing electrode gaussian");
             saveName = (string.IsNullOrEmpty(saveName) || !saveName.Contains("_rho"))
-                ? ("xRes" + xRes + "_yRes" + yRes + "_rho" + rho + "_lambda" + lambda + "_numAxons" + number_axons +
-                   "_numSegments" + number_axon_segments + (useLeftEye ? "_Left" : "_Right")) : saveName;
+                ? "implantHorFOV" + (xMax-xMin) + "_headsetHorFOV" + headsetFOV_Horizontal +
+                  "implantVerFOV" + (yMax-yMin) + "_headsetVerFOV" + headsetFOV_Vertical +
+                  "_xRes" + xRes + "_yRes" + yRes + "_rho" + rho + "_lambda" + lambda + "_numAxons" + number_axons +
+                   "_numSegments" + number_axon_segments + (useLeftEye ? "_Left" : "_Right") : saveName;
             String pythonPath =  Application.dataPath + Path.DirectorySeparatorChar + "sVision" + Path.DirectorySeparatorChar +
                                  "Backend" + Path.DirectorySeparatorChar + "python" + Path.DirectorySeparatorChar;
             ProcessStartInfo processStartInfo = new ProcessStartInfo();

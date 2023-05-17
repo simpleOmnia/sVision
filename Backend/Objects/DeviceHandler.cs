@@ -39,7 +39,7 @@ namespace svision_internal
         public void LoadDevice(string electrodesPath) {
             TextAsset[] csvFiles = Resources.LoadAll<TextAsset>("ImplantCSVs");
             foreach (TextAsset csvFile in csvFiles) {
-                if (csvFile.name.StartsWith(electrodesPath)) {
+                if (electrodesPath.StartsWith(csvFile.name)) {
                     string[] electrodeLocStrings = csvFile.text.Split("\n"); 
                     electrodes = new Electrode[electrodeLocStrings.Length];
                     for (int i = 0; i < electrodes.Length; i++) {

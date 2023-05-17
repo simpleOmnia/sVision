@@ -12,8 +12,7 @@ public class CreateElectrodeInteractionModel : EditorWindow
     private string savedSettingsPath = Application.dataPath + Path.DirectorySeparatorChar +
                                       "sVision" + Path.DirectorySeparatorChar + "Resources" +
                                       Path.DirectorySeparatorChar + "PreComputedModels" +
-                                      Path.DirectorySeparatorChar + "ElectrodeInteractionModels" + 
-                                      Path.DirectorySeparatorChar;
+                                      Path.DirectorySeparatorChar ;
     
     private RectOffset rctOffButton, rctOffTextField, rctOffToggle, rctOffSlider;
 
@@ -40,7 +39,7 @@ public class CreateElectrodeInteractionModel : EditorWindow
 
     [MenuItem("sVision/ElectrodeInteractionModel")]
     static void Init() {
-        CreateAxonMapModel window = (CreateAxonMapModel)EditorWindow.GetWindow(typeof(CreateElectrodeInteractionModel));
+        CreateElectrodeInteractionModel window = (CreateElectrodeInteractionModel)EditorWindow.GetWindow(typeof(CreateElectrodeInteractionModel));
         window.Show(); }
 
     
@@ -70,8 +69,8 @@ public class CreateElectrodeInteractionModel : EditorWindow
 
         EditorGUI.BeginChangeCheck();
         
-        GUILayout.Label(new GUIContent("Model name: ", "Name to save the electrode interaction model under Resources/PreComputedModels/ElectrodeModels/"));
-        implantCSV = GUILayout.TextField(implantCSV); 
+        GUILayout.Label(new GUIContent("Model name: ", "Name to save the electrode interaction model under Resources/PreComputedModels/ElectrodeInteractionModels/"));
+        electrodeInteractionModelName = GUILayout.TextField(electrodeInteractionModelName); 
         
         GUILayout.Space(25);
         GUILayout.Label(new GUIContent("X Position[" + $"{arrayPosition.x:0.0}" + "]: ", "Sets the X position"));
@@ -187,10 +186,19 @@ public class CreateElectrodeInteractionModel : EditorWindow
                 }
                 else
                     dh.LoadDevice(implantCSV);
-
-                dh.MoveAndRotateElectrodeArray(arrayPosition.x, arrayPosition.y, arrayPosition.z,
-                    arrayRotation.x, arrayRotation.y, arrayRotation.z); 
                 
+                dh.MoveAndRotateElectrodeArray(arrayPosition.x, arrayPosition.y, arrayPosition.z,
+                    arrayRotation.x, arrayRotation.y, arrayRotation.z);
+
+                SpatialModelHandler smh = new SpatialModelHandler(dh.GetElectrodes());
+
+                string spatialModelPath =
+                    savedSettingsPath + modelType + "s" + Path.DirectorySeparatorChar + spatialModelName + 
+                    (spatialModelName.Contains("_axon_contrib.dat") ? "" : "_axon_contrib.dat");
+                string electrodeModelPath =
+                    savedSettingsPath + "ElectrodeInteractionModels" + Path.DirectorySeparatorChar +
+                    electrodeInteractionModelName;
+                BinaryHandler.WriteFloatArray(electrodeModelPath, smh.GetElectrodeToAxonSegmentGauss(spatialModelPath));
                 
                 runCalculation = false; 
             }
