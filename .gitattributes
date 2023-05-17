@@ -1,0 +1,2 @@
+Resources/PreComputedModels/AxonMapModels/xRes1080_yRes1200_rho150_lambda1000_numAxons1000_numSegments1000_Right_axon_contrib.dat filter=lfs diff=lfs merge=lfs -text
+Resources/PreComputedModels/AxonMapModels/xRes1080_yRes1200_rho150_lambda1000_numAxons1000_numSegments1000_Left_axon_contrib.dat filter=lfs diff=lfs merge=lfs -text
