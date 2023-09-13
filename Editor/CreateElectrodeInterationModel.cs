@@ -9,10 +9,6 @@ using UnityEditor.Build;
 public class CreateElectrodeInteractionModel : EditorWindow 
 {
     
-    private string savedSettingsPath = Application.dataPath + Path.DirectorySeparatorChar +
-                                      "sVision" + Path.DirectorySeparatorChar + "Resources" +
-                                      Path.DirectorySeparatorChar + "PreComputedModels" +
-                                      Path.DirectorySeparatorChar ;
     
     private RectOffset rctOffButton, rctOffTextField, rctOffToggle, rctOffSlider;
 
@@ -34,7 +30,6 @@ public class CreateElectrodeInteractionModel : EditorWindow
 
     private bool usePrebuilt;
 
-    private bool initialLoad = true;
     private bool runCalculation = false; 
 
     [MenuItem("sVision/ElectrodeInteractionModel")]
@@ -160,7 +155,7 @@ public class CreateElectrodeInteractionModel : EditorWindow
         }
 
         GUILayout.Space(25);
-        GUILayout.Label(new GUIContent("Spatial Model name: ", "Name of pre-calculated model to use, should be in Resources/PreComputedModels"));
+        GUILayout.Label(new GUIContent("Spatial Model name (leave blank to use last ran spatial model): ", "Name of pre-calculated model to use, should be in Resources/PreComputedModels"));
         spatialModelName = GUILayout.TextField(spatialModelName); 
         
         modelType = (SpatialModelType) EditorGUILayout.EnumPopup("Spatial model type:", modelType);
@@ -192,13 +187,18 @@ public class CreateElectrodeInteractionModel : EditorWindow
 
                 SpatialModelHandler smh = new SpatialModelHandler(dh.GetElectrodes());
 
+                spatialModelName = string.IsNullOrEmpty(spatialModelName)
+                    ? new sxr_internal.FileHandler().ReadLastLine(
+                        FolderPaths.modelsPath + modelType + "s" + Path.DirectorySeparatorChar + "lastModel.txt") 
+                    : spatialModelName;
+                Debug.Log("sVision - Using last spatial model: " + spatialModelName); 
                 string spatialModelPath =
-                    savedSettingsPath + modelType + "s" + Path.DirectorySeparatorChar + spatialModelName + 
+                    FolderPaths.modelsPath + modelType + "s" + Path.DirectorySeparatorChar + spatialModelName + 
                     (spatialModelName.Contains("_axon_contrib.dat") ? "" : "_axon_contrib.dat");
                 string electrodeModelPath =
-                    savedSettingsPath + "ElectrodeInteractionModels" + Path.DirectorySeparatorChar +
-                    electrodeInteractionModelName;
+                    FolderPaths.electrodeModelsPath + electrodeInteractionModelName;
                 BinaryHandler.WriteFloatArray(electrodeModelPath, smh.GetElectrodeToAxonSegmentGauss(spatialModelPath));
+                BinaryHandler.WriteElectrodeLocations(electrodeModelPath+"_electrodes", dh.GetElectrodes());
                 
                 runCalculation = false; 
             }

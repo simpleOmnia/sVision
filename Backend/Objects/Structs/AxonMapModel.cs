@@ -49,76 +49,102 @@ namespace svision_internal
             this.number_axons = number_axons;
             this.number_axon_segments = number_axon_segments;
             this.useLeftEye = useLeftEye;
-            simulated_xResolution = simulated_yResolution = 0;
-            simulation_xStep = simulation_yStep =
-                simulation_xMin = simulation_xMax = simulation_yMin = simulation_yMax = 0;
+            //simulated_xResolution = simulated_yResolution = 0;
+            simulation_xyStep = simulation_xMin = simulation_xMax = simulation_yMin = simulation_yMax = 0;
             SetSimulationBounds();
         }
         
-        private int simulated_xResolution, simulated_yResolution;
-        private float simulation_xStep, simulation_yStep;
+        //private int simulated_xResolution, simulated_yResolution;
+        private float simulation_xyStep;
         private float simulation_xMin, simulation_xMax;
         private float simulation_yMin, simulation_yMax;
         public void SetSimulationBounds()
         {
-            Debug.Log("Setting simulation bounds: " + xRes + ", " + yRes); 
-            simulated_xResolution =
-                (int) Math.Floor(
-                    (double) xRes / (double) downscaleFactor);
-            simulated_yResolution = (int) Math.Floor((double) yRes /
-                                                     (double) downscaleFactor);
+            // Debug.Log("Setting simulation bounds: " + xRes + ", " + yRes); 
+            // simulated_xResolution =
+            //     (int) Math.Floor(
+            //         (double) xRes / (double) downscaleFactor);
+            // simulated_yResolution = (int) Math.Floor((double) yRes /
+            //                                          (double) downscaleFactor);
+            //
+            // Debug.Log("X-res" + simulated_xResolution);
+            // Debug.Log("Y-res" +simulated_yResolution);
+            //
+            // simulation_xStep =
+            //     headsetFOV_Horizontal / simulated_xResolution;
+            //
+            // float xCenter = xMax + xMin / 2.0f;
+            // int numberStepsPerXDirection =
+            //     (int) ((xMax - xMin /
+            //             (2 * simulation_xStep)) - 1);
+            // Debug.Log("X-center"+$"{xCenter:0.00}");
+            // Debug.Log("X-step size: "+$"{simulation_xStep:0.00}");
+            //
+            // simulation_xMin =
+            //     (xCenter - .5f * simulation_xStep) -
+            //     (simulation_xStep * (numberStepsPerXDirection));
+            // simulation_xMax =
+            //     (xCenter + .5f * simulation_xStep) +
+            //     (simulation_xStep * (numberStepsPerXDirection));
+            //
+            // simulation_yStep =
+            //     headsetFOV_Vertical / simulated_yResolution;
+            //
+            // float yCenter = yMax + yMin / 2.0f;
+            // int numberStepsPerYDirection =
+            //     (int) ((yMax - yMin /
+            //         (2 * simulation_yStep)) - 1);
+            // Debug.Log("Y-center"+$"{yCenter:0.00}");
+            // Debug.Log("Y-step size: "+$"{simulation_yStep:0.00}");
+            //
+            // simulation_yMin =
+            //     (yCenter - .5f * simulation_yStep) -
+            //     (simulation_yStep * (numberStepsPerYDirection));
+            // simulation_yMax =
+            //     (yCenter + .5f * simulation_yStep) +
+            //     (simulation_yStep * (numberStepsPerYDirection));
+            //
+            // if (simulation_xStep != simulation_yStep)
+            // {
+            //     Debug.LogWarning("sVision - simulation_xstep conflicts with simulation_ystep, non-square pixels currently unsupported by pulse2percept");
+            // }
 
-            Debug.Log("X-res" + simulated_xResolution);
-            Debug.Log("Y-res" +simulated_yResolution);
-
-            simulation_xStep =
-                headsetFOV_Horizontal / simulated_xResolution;
-
-            float xCenter = xMax + xMin / 2.0f;
-            int numberStepsPerXDirection =
-                (int) ((xMax - xMin /
-                        (2 * simulation_xStep)) - 1);
-            Debug.Log("X-center"+$"{xCenter:0.00}");
-            Debug.Log("X-step size: "+$"{simulation_xStep:0.00}");
+            float xCenter = 0;
+            float yCenter = 0; 
+            simulation_xyStep = 60f / 500;
+            int numberStepsPerDirection = (int) (60f / (2 * simulation_xyStep)) - 1; 
+            Debug.Log(xCenter);
+            Debug.Log(simulation_xyStep);
             
             simulation_xMin =
-                (xCenter - .5f * simulation_xStep) -
-                (simulation_xStep * (numberStepsPerXDirection));
+                (xCenter - .5f * simulation_xyStep) -
+                (simulation_xyStep * (numberStepsPerDirection));
             simulation_xMax =
-                (xCenter + .5f * simulation_xStep) +
-                (simulation_xStep * (numberStepsPerXDirection));
+                (xCenter + .5f * simulation_xyStep) +
+                (simulation_xyStep * (numberStepsPerDirection));
+        
             
-            simulation_yStep =
-                headsetFOV_Vertical / simulated_yResolution;
-           
-            float yCenter = yMax + yMin / 2.0f;
-            int numberStepsPerYDirection =
-                (int) ((yMax - yMin /
-                    (2 * simulation_yStep)) - 1);
-            Debug.Log("Y-center"+$"{yCenter:0.00}");
-            Debug.Log("Y-step size: "+$"{simulation_yStep:0.00}");
-            
-            simulation_yMin =
-                (yCenter - .5f * simulation_yStep) -
-                (simulation_yStep * (numberStepsPerYDirection));
-            simulation_yMax =
-                (yCenter + .5f * simulation_yStep) +
-                (simulation_yStep * (numberStepsPerYDirection));
+            numberStepsPerDirection = (int) (60 / (2 * simulation_xyStep)) - 1;
 
-            if (simulation_xStep != simulation_yStep)
-            {
-                Debug.LogWarning("sVision - simulation_xstep conflicts with simulation_ystep, non-square pixels currently unsupported by pulse2percept");
-            }
+            simulation_yMin =
+                (yCenter - .5f * simulation_xyStep) -
+                (simulation_xyStep * (numberStepsPerDirection));
+            simulation_yMax =
+                (yCenter + .5f * simulation_xyStep) +
+                (simulation_xyStep * (numberStepsPerDirection));
+            
         }
 
-        public void BuildModel()
-        {
-            if(!saveName.Contains("_rho")) Debug.LogWarning("sVision - AxonMapModel saveName must contain _rho(#rho_value) for computing electrode gaussian");
+        public void BuildModel() {
+            if(!string.IsNullOrEmpty(saveName) && !saveName.Contains("_rho"))
+                Debug.LogWarning("sVision - AxonMapModel saveName must contain _rho(#rho_value) for computing electrode gaussian");
+            
             saveName = (string.IsNullOrEmpty(saveName) || !saveName.Contains("_rho"))
                 ? "implantHorFOV" + (xMax-xMin) + "_headsetHorFOV" + headsetFOV_Horizontal +
-                  "implantVerFOV" + (yMax-yMin) + "_headsetVerFOV" + headsetFOV_Vertical +
+                  "implantVerFOV" + (yMax-yMin) + "_headsetVerFOV" + headsetFOV_Vertical + "_downscale" + downscaleFactor +
                   "_xRes" + xRes + "_yRes" + yRes + "_rho" + rho + "_lambda" + lambda + "_numAxons" + number_axons +
                    "_numSegments" + number_axon_segments + (useLeftEye ? "_Left" : "_Right") : saveName;
+            
             String pythonPath =  Application.dataPath + Path.DirectorySeparatorChar + "sVision" + Path.DirectorySeparatorChar +
                                  "Backend" + Path.DirectorySeparatorChar + "python" + Path.DirectorySeparatorChar;
             ProcessStartInfo processStartInfo = new ProcessStartInfo();
@@ -132,7 +158,7 @@ namespace svision_internal
             string pulse2perceptCmdCall = pythonPath+"build-p2p.py " +
                                           savedSettingsPath
                                           + " " + simulation_xMin + " " + simulation_xMax +
-                                          " " + simulation_yMin + " " + simulation_yMax + " " + simulation_xStep + 
+                                          " " + simulation_yMin + " " + simulation_yMax + " " + simulation_xyStep + 
                                           " " + rho + " " + lambda + 
                                           " " + axon_threshold + " " + number_axons + " " + number_axon_segments + " " 
                                           + useLeftEye + " " + saveName;
@@ -143,6 +169,8 @@ namespace svision_internal
             
             Process process = Process.Start(processStartInfo);
             process?.WaitForExit();
+            
+            new sxr_internal.FileHandler().AppendLine(savedSettingsPath+"lastModel.txt", saveName);
         }
     }
 }

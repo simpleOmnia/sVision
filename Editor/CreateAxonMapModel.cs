@@ -6,18 +6,13 @@ using UnityEditor;
 public class CreateAxonMapModel : EditorWindow 
 {
     
-    private string savedSettingsPath = Application.dataPath + Path.DirectorySeparatorChar +
-                                      "sVision" + Path.DirectorySeparatorChar + "Resources" +
-                                      Path.DirectorySeparatorChar + "PreComputedModels" + Path.DirectorySeparatorChar +
-                                      Path.DirectorySeparatorChar + "AxonMapModels" + Path.DirectorySeparatorChar;
-
+    
     private RectOffset rctOffButton, rctOffTextField, rctOffToggle, rctOffSlider;
 
     private GUIStyle myStyle;
 
     private AxonMapModel axonModel = new AxonMapModel(); 
 
-    private bool initialLoad = true;
     private bool runCalculation = false; 
 
     [MenuItem("sVision/AxonMapModel")]
@@ -179,7 +174,7 @@ public class CreateAxonMapModel : EditorWindow
 
     void OnEnable()
     {
-        axonModel.savedSettingsPath = savedSettingsPath; 
+        axonModel.savedSettingsPath = FolderPaths.axonMapModelsPath; 
         axonModel.headsetFOV_Horizontal = 60;
         axonModel.headsetFOV_Vertical = 60; 
         axonModel.downscaleFactor = 1;

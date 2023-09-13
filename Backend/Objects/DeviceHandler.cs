@@ -23,23 +23,29 @@ namespace svision_internal
             Electrode[] copy = new Electrode[electrodes.Length];
             Array.Copy(electrodes, copy, electrodes.Length);
             return copy; }
-        
+
         public string ListElectrodes()
         {
-            string output = "";
-            foreach(var electrode in electrodes)
+            if (electrodes != null)
+            {
+                string output = "";
+            foreach (var electrode in electrodes)
                 output += electrode.ToString() + "   *****   ";
             Debug.Log(output);
-            return output; 
+            return output;
+            }
+
+            Debug.Log("svision - no electrodes");
+            return "No Electrodes"; 
         }
 
         public void LoadDevice(PrebuiltImplant prebuiltImplant)
         { LoadDevice(prebuiltImplant.ToString()); }
 
-        public void LoadDevice(string electrodesPath) {
+        public void LoadDevice(string fileName) {
             TextAsset[] csvFiles = Resources.LoadAll<TextAsset>("ImplantCSVs");
             foreach (TextAsset csvFile in csvFiles) {
-                if (electrodesPath.StartsWith(csvFile.name)) {
+                if (fileName.StartsWith(csvFile.name)) {
                     string[] electrodeLocStrings = csvFile.text.Split("\n"); 
                     electrodes = new Electrode[electrodeLocStrings.Length];
                     for (int i = 0; i < electrodes.Length; i++) {
@@ -52,7 +58,7 @@ namespace svision_internal
                             electrodes[i] = new Electrode(i, xLoc, yLoc, zLoc);
                             continue; }
 
-                        Debug.LogError("Failed to load file: " + electrodesPath); } } }
+                        Debug.LogError("Failed to load file: " + fileName); } } }
         }
         
         public void CreateLattice(int xCount, int yCount, int zCount, float xSpacing, float ySpacing, float zSpacing) {
@@ -89,7 +95,7 @@ namespace svision_internal
                 Vector3 rotatedPoint = rotation * translatedPoint;
                 Vector3 finalPoint = rotatedPoint + centroid + new Vector3(xShift, yShift, zShift);
             
-                electrodes[i] = new Electrode(electrodes[i].electrodeNumber, finalPoint.x, finalPoint.y, finalPoint.z, electrodes[i].current);
+                electrodes[i] = new Electrode(electrodes[i].electrodeNumber, finalPoint.x, finalPoint.y, finalPoint.z);
             }
         }
         public void MoveAndRotateElectrodeArray(float xShift, float yShift, float xRot, float yRot)

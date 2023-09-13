@@ -14,11 +14,10 @@ struct Electrode
     float x;
     float y;
     float z; 
-    float current; 
 };
             
-int ElectrodeCount;
-int NeuronCount; 
+uint ElectrodeCount;
+uint NeuronCount; 
 float rho;
 
 RWStructuredBuffer<float> NeuronElectrodeGauss : register(u4);

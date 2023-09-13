@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -15,11 +13,7 @@ namespace svision_internal{
         public SpatialModelHandler() 
         { Debug.LogError("sVision - SpatialModelHandler requires electrodes"); }
 
-        private static string savedSettingsPath = Application.dataPath + Path.DirectorySeparatorChar +
-                                                  "sVision" + Path.DirectorySeparatorChar + "Resources" +
-                                                  Path.DirectorySeparatorChar + "PreComputedModels" +
-                                                  Path.DirectorySeparatorChar;
-
+        
         public enum SpatialModel {
             AxonMapModel,
             CorticalModel
@@ -31,20 +25,34 @@ namespace svision_internal{
             float axon_threshold, int number_axons, int number_axon_segments, bool useLeftEye) 
         {
             AxonMapModel axonMapModel = new AxonMapModel(
-                savedSettingsPath + "AxonMapModels" + Path.DirectorySeparatorChar,
+                FolderPaths.axonMapModelsPath,
                 "", downscaleFactor, headsetFOV_Horizontal, headsetFOV_Vertical, xMin, xMax,
                 yMin, yMax, xRes, yRes, rho, lambda, axon_threshold, number_axons, number_axon_segments, useLeftEye);
         }
 
-        public float[] GetElectrodeToAxonSegmentGauss(string axonContribDataFilePath) {
+        public ComputeBuffer GetElectrodeToAxonSegmentGaussBuffer(string axonContribDataFilePath) {
             int numberElectrodes = electrodes.Length;
             AxonSegment[] segmentsContrib = AxonSegmentHandler.ReadAxonSegments(axonContribDataFilePath);
+            // foreach (var seg in segmentsContrib)
+            // {
+            //     if (seg.xPosition < 300 && seg.yPosition < 300 && seg.xPosition > -300 && seg.yPosition > -300)
+            //     {
+            //         Debug.Log(seg); 
+            //         float distance2 = (float)( Math.Pow(seg.xPosition-100,2) + Math.Pow(seg.yPosition-100,2));
+            //
+            //         distance2 = (float) (distance2 < 1e-44 ? 1e-44 : distance2);
+            //
+            //         Debug.Log(distance2);
+            //         Debug.Log(Math.Exp(-distance2/(2*150*150)));
+            //     }
+            // }
             int rho = 0;
             foreach (var item in axonContribDataFilePath.Split("_"))
                 if (item.Contains("rho"))
                     if (!Int32.TryParse(item.Replace("rho", ""), out rho))
                         Debug.LogError(
                             "sVision - Could not parse rho value from filename during GetElectrodeToAxonSegmentGauss");
+            Debug.Log("RHO: " + rho); 
 
             long numberElectrodesToSegments =
                 (long) segmentsContrib.Length * (long) numberElectrodes;
@@ -62,7 +70,7 @@ namespace svision_internal{
                 Debug.LogError(
                     "sVision - Calculating axon segment electrode interactions not computationally feasible." +
                     "  Please raise downscaling factor or lower number of electrodes");
-                return new float[0]; 
+                return new ComputeBuffer(1, 4); 
             }
             else {
                 axonSegmentGaussToElectrodes = new ComputeBuffer((int) numberElectrodesToSegments, 4);
@@ -71,6 +79,8 @@ namespace svision_internal{
                         System.Runtime.InteropServices.Marshal.SizeOf(typeof(Electrode)), ComputeBufferType.Default);
                 electrodesBuffer.SetData(electrodes);
 
+                foreach(var elec in electrodes)
+                    Debug.Log(elec);
                 ComputeBuffer axonsBuffer =
                     new ComputeBuffer((int) numberElectrodesToSegments,
                         System.Runtime.InteropServices.Marshal.SizeOf(typeof(Neuron)), ComputeBufferType.Default);
@@ -79,8 +89,8 @@ namespace svision_internal{
                     .ToArray());
 
                 computeShader.SetBuffer(kernel, "Electrodes", electrodesBuffer);
-                computeShader.SetBuffer(kernel, "Axons", axonsBuffer);
-                computeShader.SetBuffer(kernel, "AxonSegmentGauss",
+                computeShader.SetBuffer(kernel, "Neurons", axonsBuffer);
+                computeShader.SetBuffer(kernel, "NeuronElectrodeGauss",
                     axonSegmentGaussToElectrodes);
 
                 computeShader.SetInt("ElectrodeCount", numberElectrodes);
@@ -90,11 +100,25 @@ namespace svision_internal{
                     segmentsContrib.Length / 1024 + 1, 1, 1);
                 electrodesBuffer.Release();
                 axonsBuffer.Release();
-
             }
+            // float[] returnArray = new float[axonSegmentGaussToElectrodes.count]; 
+            // axonSegmentGaussToElectrodes.GetData(returnArray);
+            // foreach (var flr in returnArray)
+            // {
+            //     if (flr > .05)
+            //         Debug.Log(flr); 
+            // }
+            
+            return axonSegmentGaussToElectrodes;
+        }
 
-            float[] returnArray = new float[segmentsContrib.Length * numberElectrodes]; 
+        public float[] GetElectrodeToAxonSegmentGauss(string axonContribDataFilePath)
+        {
+            ComputeBuffer axonSegmentGaussToElectrodes = GetElectrodeToAxonSegmentGaussBuffer(axonContribDataFilePath);
+            float[] returnArray = new float[axonSegmentGaussToElectrodes.count * electrodes.Length]; 
             axonSegmentGaussToElectrodes.GetData(returnArray);
+            for (int i = 0; i < returnArray.Length; i += returnArray.Length / 100) 
+                Debug.Log(returnArray[i]);
             return returnArray;
         }
     }

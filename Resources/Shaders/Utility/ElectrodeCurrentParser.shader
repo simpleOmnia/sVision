@@ -51,14 +51,14 @@ Shader "sVision/Utility/ElectrodeCurrentParser"{
                 float current; 
             };
 
-            uniform RWStructuredBuffer<Electrode> ElectrodesBuffer : register(u2);
+            uniform RWStructuredBuffer<Electrode> ElectrodesBuffer : register(u1);
             
             uint NumberElectrodes;
             uint XResolution; 
             uint YResolution;
             int invert; 
-            float GazeShiftX;
-            float GazeShiftY; 
+            // float GazeShiftX;
+            // float GazeShiftY; 
 
             uint pixelNumberX( float screenPos)
             {  return ceil(XResolution * screenPos);  }  
@@ -69,11 +69,11 @@ Shader "sVision/Utility/ElectrodeCurrentParser"{
             float4 frag (v2f i) : SV_Target { 
                  float _texelw = _MainTex_TexelSize.x;
                 
-                int pixelsX = round((.5-GazeShiftX)/_texelw);
-                int pixelsY = round((.5-GazeShiftY)/_texelw); 
+                // int pixelsX = round((.5-GazeShiftX)/_texelw);
+                // int pixelsY = round((.5-GazeShiftY)/_texelw); 
                 
-                float shiftY = pixelsY * _texelw;
-                float shiftX = pixelsX * _texelw;
+                float shiftY = 0; //pixelsY * _texelw;
+                float shiftX = 0; //pixelsX * _texelw;
                 
                 float2 newUV;
                 newUV.x = i.uv.x - shiftX;
@@ -81,12 +81,12 @@ Shader "sVision/Utility/ElectrodeCurrentParser"{
 
                 float invVal = invert==1 ? .6 - tex2D(_MainTex, newUV).a : tex2D(_MainTex, newUV).a;
                 
-                for(int currentElectrode = 0; currentElectrode < NumberElectrodes; currentElectrode++){
-                    // electrodesBuffer[currentElectrode].current = 0; 
-                    if( pixelNumberX(i.uv.x) == pixelNumberX(ElectrodesBuffer[currentElectrode].x) 
-                    && pixelNumberY(i.uv.y) == pixelNumberY(ElectrodesBuffer[currentElectrode].y)){
-                        ElectrodesBuffer[currentElectrode].current = invVal; 
-                    }
+                for(int currElec=0; currElec<NumberElectrodes; currElec++)
+                {
+                    if( pixelNumberX(i.uv.x) == pixelNumberX(ElectrodesBuffer[currElec].x) 
+                    && pixelNumberY(i.uv.y) == pixelNumberY(ElectrodesBuffer[currElec].y))
+                        ElectrodesBuffer[currElec].current = invVal;
+
                 }
                 
                 return fixed4(invVal, invVal, invVal, invVal); ;

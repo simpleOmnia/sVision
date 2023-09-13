@@ -1,0 +1,54 @@
+﻿#pragma kernel AxonModelShader
+
+#define THREADS_X 1024 // Set to a suitable number for your GPU
+
+struct ComputeElectrode
+{
+    int electrodeNumber;
+    int location1D;
+    float current;
+};
+
+// Change Result to a RWStructuredBuffer
+RWStructuredBuffer<float> Result : register(u1);
+RWStructuredBuffer<float> ElectrodeToNeuronGaussBuffer : register(u4);
+
+StructuredBuffer<ComputeElectrode>  ElectrodesBuffer;
+StructuredBuffer<int> StartBuffer;
+StructuredBuffer<float> AxonContributionsBuffer; 
+
+uint XResolution;
+uint YResolution;
+uint NumberElectrodes;
+uint RasterOffset; 
+
+float ElectrodeThreshold;
+float BrightnessThreshold;
+
+[numthreads(1024, 1, 1)]
+void AxonModelShader (uint3 id : SV_DispatchThreadID) {
+    if (id.x >= XResolution * YResolution) return;
+    
+    float brightestNeuron = 0.0f;
+    
+    // Cycle through neurons affecting current pixel
+    for (uint m = StartBuffer[id.x]; m<StartBuffer[id.x+1]; m++) {
+        float curr_neuron_brightness = 0.0f;
+
+        // Loop over electrodes
+        for(uint j=0; j<NumberElectrodes; j++)
+            if(ElectrodesBuffer[j].current > ElectrodeThreshold){
+                int currPos = (m*NumberElectrodes) + ElectrodesBuffer[currPos].electrodeNumber;  // [0 : NumberElectrodes] goes to axon 0, [NumberElectrodes : 2*NumberElectrodes] goes to axon 1, etc
+
+                curr_neuron_brightness = curr_neuron_brightness + ElectrodesBuffer[j].current * AxonContributionsBuffer[currPos]; 
+            }
+
+        brightestNeuron = curr_neuron_brightness > brightestNeuron
+            ? curr_neuron_brightness : brightestNeuron; 
+    }
+    brightestNeuron = brightestNeuron > BrightnessThreshold ? brightestNeuron : 0;
+
+    // Save the result to the buffer
+    Result[id.x] = brightestNeuron; 
+}
+

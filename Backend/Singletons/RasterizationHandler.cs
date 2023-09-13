@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class RasterizationHandler : MonoBehaviour
 {
+    public int RasterOffset = 0; 
     // Start is called before the first frame update
     void Start()
     {
