@@ -9,7 +9,7 @@ struct ComputeElectrode
     float current;
 };
 
-RWStructuredBuffer<float> Result : register(u1);
+RWStructuredBuffer<float> IMAGE1D: register(u1);
 RWStructuredBuffer<float> ElectrodeToNeuronGaussBuffer : register(u4);
 
 StructuredBuffer<ComputeElectrode>  ElectrodesBuffer;
@@ -48,6 +48,6 @@ void AxonModelShader (uint3 id : SV_DispatchThreadID) {
     brightestNeuron = brightestNeuron > BrightnessThreshold ? brightestNeuron : 0;
     
     // Save the result to the buffer
-    Result[id.x] = brightestNeuron; 
+    IMAGE1D[id.x] = brightestNeuron; 
 }
 

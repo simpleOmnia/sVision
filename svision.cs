@@ -134,7 +134,7 @@ public class svision : MonoBehaviour
         axonKernel = axonKernelShader.FindKernel("AxonModelShader");
         print(axonKernel);
         
-        axonKernelShader.SetBuffer(axonKernel, "Result", oneDimImage);
+        axonKernelShader.SetBuffer(axonKernel, "IMAGE1D", oneDimImage);
         axonKernelShader.SetBuffer(axonKernel, "ElectrodeToNeuronGaussBuffer", electrodeGaussBuffer);
         
         axonKernelShader.SetBuffer(axonKernel, "ElectrodesBuffer", electrodesBuffer);
