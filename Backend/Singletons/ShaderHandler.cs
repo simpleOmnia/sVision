@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -113,6 +114,7 @@ namespace svision_internal
             GetGreyscale1D();
             sv.GetElectrodeCurrents();
             
+            sv.CallAxonMapKernel();
             FillWith1Dim();
             
             Graphics.Blit(processed, dest); // Render back to fullscale texture
@@ -131,11 +133,7 @@ namespace svision_internal
             
         }
 
-        private void CallAxonMapKernel()
-        {
-            int numberElectrodes = sv.c_electrodes.Length;
-            
-        }
+        
 
         private void FillWith1Dim()
         {
@@ -205,10 +203,6 @@ namespace svision_internal
                 Shader.PropertyToID("ElectrodeThreshold"),
                 Shader.PropertyToID("BrightnessThreshold")
             };
-            foreach (var id in shaderVariables[ShaderName.AxonModel])
-            {
-                Debug.Log(id); 
-            }
             
             Shader[] allShaders = Resources.LoadAll<Shader>("Shaders");
             List<Material> shaderMaterialsList = new List<Material>();

@@ -22,6 +22,7 @@ namespace svision_internal
         {
             float screenX = UnitConverter.micronToScreenPos(x);
             float screenY = UnitConverter.micronToScreenPos(y);
+            Debug.Log(electrodeNumber+": "+screenX+","+screenY);
             
             int xPixel = Mathf.CeilToInt((screenX - svision.Instance.minimumScreenPositionX) * svision.Instance.xResolution*
                                          (svision.Instance.maximumScreenPositionX-svision.Instance.minimumScreenPositionX)*svision.Instance.xResolution);

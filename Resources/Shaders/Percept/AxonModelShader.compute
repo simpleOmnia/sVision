@@ -9,7 +9,6 @@ struct ComputeElectrode
     float current;
 };
 
-// Change Result to a RWStructuredBuffer
 RWStructuredBuffer<float> Result : register(u1);
 RWStructuredBuffer<float> ElectrodeToNeuronGaussBuffer : register(u4);
 
@@ -34,20 +33,20 @@ void AxonModelShader (uint3 id : SV_DispatchThreadID) {
     // Cycle through neurons affecting current pixel
     for (uint m = StartBuffer[id.x]; m<StartBuffer[id.x+1]; m++) {
         float curr_neuron_brightness = 0.0f;
-
+    
         // Loop over electrodes
         for(uint j=0; j<NumberElectrodes; j++)
             if(ElectrodesBuffer[j].current > ElectrodeThreshold){
-                int currPos = (m*NumberElectrodes) + ElectrodesBuffer[currPos].electrodeNumber;  // [0 : NumberElectrodes] goes to axon 0, [NumberElectrodes : 2*NumberElectrodes] goes to axon 1, etc
-
-                curr_neuron_brightness = curr_neuron_brightness + ElectrodesBuffer[j].current * AxonContributionsBuffer[currPos]; 
+                const int currPos = (m*NumberElectrodes) + ElectrodesBuffer[j].electrodeNumber;  // [0 : NumberElectrodes] goes to axon 0, [NumberElectrodes : 2*NumberElectrodes] goes to axon 1, etc
+                float gauss = ElectrodeToNeuronGaussBuffer[currPos];
+                curr_neuron_brightness = curr_neuron_brightness + ElectrodesBuffer[j].current * AxonContributionsBuffer[m]*gauss;
             }
-
+    
         brightestNeuron = curr_neuron_brightness > brightestNeuron
             ? curr_neuron_brightness : brightestNeuron; 
     }
     brightestNeuron = brightestNeuron > BrightnessThreshold ? brightestNeuron : 0;
-
+    
     // Save the result to the buffer
     Result[id.x] = brightestNeuron; 
 }

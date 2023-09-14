@@ -66,7 +66,7 @@
                 const uint xPixel = pixelNumberX(currScreenX);
                 const uint yPixel = pixelNumberY(currScreenY);
 
-                const uint loc1D = xPixel + (SimulatedXResolution-1) * (yPixel);
+                const uint loc1D = xPixel + (SimulatedXResolution) * (yPixel) ;
                 
                 float lumValue = IMAGE1D[loc1D];
                 

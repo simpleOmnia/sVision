@@ -15,12 +15,13 @@ namespace svision_internal
             
             string directory = Path.GetDirectoryName(path); 
             Debug.Log(directory);
-            if(!Directory.Exists(directory))
+            if(!Directory.Exists(directory) || !File.Exists(path))
             {
-                Debug.LogError("sVision - ReadAxonSegment path does not have a valid directory\n"+path);
+                Debug.LogError("sVision - ReadAxonSegment path does not have a valid path\n"+path);
                 
                 return new AxonSegment[0]; 
             }
+            
             
             using (BinaryReader reader = new BinaryReader(File.OpenRead(path)))
             {

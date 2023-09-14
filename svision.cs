@@ -20,10 +20,13 @@ public class svision : MonoBehaviour
     
     private Electrode[] electrodes;
     public ComputeElectrode[] c_electrodes;
-    
     public ComputeBuffer electrodesBuffer;
-    public ComputeBuffer c_electrodesBuffer; 
     public ComputeBuffer electrodeGaussBuffer;
+
+    private ComputeShader axonKernelShader;
+    private int axonKernel;
+    private int rasterOffsetID;
+    private int rasterOffset; 
     public ComputeBuffer axonContributionsBuffer; 
     public ComputeBuffer axonIdxStartBuffer;
     
@@ -49,6 +52,7 @@ public class svision : MonoBehaviour
     
     private DeviceHandler dh;
     private ShaderHandler sh;
+    private SpatialModelHandler smh; 
 
     public int currentFrame; 
 
@@ -83,22 +87,74 @@ public class svision : MonoBehaviour
         
         oneDimImage = new ComputeBuffer(simSize, 4);
         Graphics.SetRandomWriteTarget(1, oneDimImage); 
-        dim1Values = new float[simSize]; 
+        dim1Values = new float[simSize];
+
+        AxonMapModel axonMapModel = new AxonMapModel(FolderPaths.axonMapModelsPath.ToString(), "test_rho100", 1, 60.0f,
+            60.0f, -12.0f, 12.0f, -12.0f, 12.0f, 500, 500, 100, 1000, .1f, 500, 500, false);  
+        axonMapModel.BuildModel();
         
-        string path_to_axonFiles = "implantHorFOV36_headsetHorFOV60implantVerFOV36_headsetVerFOV60_downscale2_xRes1000_yRes1000_rho100_lambda150_numAxons1000_numSegments1000_Right";
+        string path_to_axonFiles = "test_rho100";
+        
+        int[] axonIDX = BinaryHandler.ReadFromBinaryFile(FolderPaths.axonMapModelsPath + path_to_axonFiles+"_axon_idx_start.dat").ToArray();
+        axonIDX = axonIDX.Append(axonIDX.Length - 1).ToArray();  // AxonModelShader reads from current pixel's starting index to the next pixel's starting index. This makes the last pixel stop at the end of the array
+        axonIdxStartBuffer?.Release();
+        axonIdxStartBuffer = new ComputeBuffer(axonIDX.Length, sizeof(int));
+        axonIdxStartBuffer.SetData(axonIDX);
+        Debug.Log("Axon IDX Length: "+axonIDX.Length);
+        
+        electrodeGaussBuffer?.Release();
+        electrodeGaussBuffer = smh.GetElectrodeToAxonSegmentGaussBuffer(FolderPaths.axonMapModelsPath+path_to_axonFiles+"_axon_contrib.dat");
+        float[] electrodeGauss = new float[electrodeGaussBuffer.count]; 
+        electrodeGaussBuffer.GetData(electrodeGauss); 
+        Debug.Log("Gauss length: " + electrodeGaussBuffer.count);
+        
         AxonSegment[] segmentsContrib = AxonSegmentHandler.ReadAxonSegments(FolderPaths.axonMapModelsPath + path_to_axonFiles + "_axon_contrib.dat");
         float[] axonContributions = new float[segmentsContrib.Length];
         for (int i = 0; i < segmentsContrib.Length; i++)
             axonContributions[i] = segmentsContrib[i].brightnessContribution;
         axonContributionsBuffer?.Release();
         axonContributionsBuffer = new ComputeBuffer(axonContributions.Length, sizeof(float));
-        Graphics.SetRandomWriteTarget(2, axonContributionsBuffer, true);
         axonContributionsBuffer.SetData(axonContributions);
         Debug.Log("contrib length: "+axonContributions.Length); 
         
+        InitializeAxonKernel();
+        
         return true; 
     }
+
+    private void InitializeAxonKernel()
+    {
+        rasterOffsetID = Shader.PropertyToID("RasterOffset"); 
+        
+        axonKernelShader = Resources.Load<ComputeShader>(
+            "Shaders" + Path.DirectorySeparatorChar + "Percept" +
+            Path.DirectorySeparatorChar + "AxonModelShader");
+        print(axonKernelShader);
+        print(axonKernelShader.HasKernel("AxonModelShader"));
+        axonKernel = axonKernelShader.FindKernel("AxonModelShader");
+        print(axonKernel);
+        
+        axonKernelShader.SetBuffer(axonKernel, "Result", oneDimImage);
+        axonKernelShader.SetBuffer(axonKernel, "ElectrodeToNeuronGaussBuffer", electrodeGaussBuffer);
+        
+        axonKernelShader.SetBuffer(axonKernel, "ElectrodesBuffer", electrodesBuffer);
+        axonKernelShader.SetBuffer(axonKernel, "StartBuffer", axonIdxStartBuffer);
+        axonKernelShader.SetBuffer(axonKernel, "AxonContributionsBuffer", axonContributionsBuffer);
+        
+        axonKernelShader.SetInt( "XResolution", simulatedResX);
+        axonKernelShader.SetInt("YResolution", simulatedResY);
+        axonKernelShader.SetInt("NumberElectrodes", c_electrodes.Length); 
+        
+        axonKernelShader.SetFloat("ElectrodeThreshold", electrodeThreshold);
+        axonKernelShader.SetFloat("BrightnessThreshold", brightnessThreshold); 
+
+    }
     
+    public void CallAxonMapKernel()
+    {
+        axonKernelShader.SetInt(rasterOffsetID, rasterOffset);
+        axonKernelShader.Dispatch(axonKernel, oneDimImage.count / 1024 + 1, 1, 1); 
+    }
 
     public void SetComputeElectrodes()
     {
@@ -110,7 +166,6 @@ public class svision : MonoBehaviour
                 c_electrodes[i] = new ComputeElectrode(electrodes[i]);
             electrodesBuffer = new ComputeBuffer(electrodes.Length,
                 System.Runtime.InteropServices.Marshal.SizeOf(typeof(ComputeElectrode)));
-            Graphics.SetRandomWriteTarget(2, electrodesBuffer, true);
             electrodesBuffer.SetData(c_electrodes);
         }
         else
@@ -135,6 +190,8 @@ public class svision : MonoBehaviour
             
             for (int i = 0; i < c_electrodes.Length; i++)
                 c_electrodes[i].current = dim1Values[c_electrodes[i].location1D];
+
+            electrodesBuffer.SetData(c_electrodes); 
             if (currentFrame % 1000 == 0)
             {
                 Debug.Log(toPrint);
@@ -198,7 +255,7 @@ public class svision : MonoBehaviour
     /// <param name="shaderName"></param>
     public void UpdateShaderDimensions(ShaderHandler.ShaderName shaderName){
 
-        oneDimImage.SetData(dim1Values); 
+        // oneDimImage.SetData(dim1Values); 
         
         ShaderHandler.Instance.ModifyShader(shaderName, buffID, oneDimImage); 
         ShaderHandler.Instance.ModifyShader(shaderName, simulatedResX, simulatedResolutionX); 
@@ -214,8 +271,7 @@ public class svision : MonoBehaviour
     
     public void Update()
     {
-
-        
+      
         // if (sxr.InitialKeyPress(KeyCode.Alpha1)){
         //     sh.SetPreprocessors(ShaderHandler.ShaderName.Greyscale);
         //     runPreprocessing = true; 
@@ -275,6 +331,7 @@ public class svision : MonoBehaviour
     
     private void Start()
     {
+        Debug.Log("TEST"); 
         buffID = Shader.PropertyToID("IMAGE1D");
         simulatedResX = Shader.PropertyToID("SimulatedXResolution");
         simulatedResY = Shader.PropertyToID("SimulatedYResolution");
@@ -289,31 +346,13 @@ public class svision : MonoBehaviour
         DeviceHandler dh =  new DeviceHandler();
         dh.LoadDevice("Test");
         electrodes = dh.GetElectrodes();
-        Initialize(); 
-        // sh = ShaderHandler.Instance;
-        //
-        // //LoadModelParameters(PrebuiltDemoModel.PrebuiltDemoModels.Scoreboard);
-        // DeviceHandler dh =  new DeviceHandler();
-        // dh.LoadDevice("Test");
-        // electrodes = dh.GetElectrodes();
-        // UpdateElectrodesToScreenPos();
-        // electrodesBuffer?.Release();
-        // electrodesBuffer = new ComputeBuffer(electrodes.Length,  System.Runtime.InteropServices.Marshal.SizeOf(typeof(Electrode)));
-        // Graphics.SetRandomWriteTarget(1, electrodesBuffer, true);
-        // electrodesBuffer.SetData(electrodes);
-        // Debug.Log("elecNum"+electrodes.Length); 
         
-        //
-        //
-        //
-        // int[] axonIDX = BinaryHandler.ReadFromBinaryFile(FolderPaths.axonMapModelsPath + "MakeTest10x10_rho100_axon_idx_start.dat").ToArray();
-        // axonIDX = axonIDX.Append(axonIDX.Length - 1).ToArray(); 
-        // axonIdxStartBuffer?.Release();
-        // axonIdxStartBuffer = new ComputeBuffer(axonIDX.Length, sizeof(int));
-        // Graphics.SetRandomWriteTarget(3, axonIdxStartBuffer, true);
-        // axonIdxStartBuffer.SetData(axonIDX);
-        // Debug.Log("axon idx length: "+axonIDX.Length);
-        //
+        smh = new SpatialModelHandler(electrodes); 
+        
+        Initialize();
+        
+       
+        
         // electrodeGaussBuffer?.Release();
         // float[] electrodeGauss = BinaryHandler
         //     .ReadFloatsFromBinaryFile(FolderPaths.electrodeModelsPath + "Test10x10Gauss").ToArray();
